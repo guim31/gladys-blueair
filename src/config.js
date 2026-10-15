@@ -1,45 +1,54 @@
 // -----------------------------------------------------------------------------
-// Integration configuration.
+// Integration configuration: defaults (they mirror the `default` values of the
+// manifest `config_schema`, see test/manifest.test.js) and normalization, so
+// the rest of the code never deals with strings, blanks or `undefined`.
 //
-// The configuration is filled in by the user in Gladys, from the `config_schema`
-// declared in `gladys-assistant-integration.json`. The SDK fetches it for you
-// (`gladys.getConfig()`) and notifies you of every change through
-// `gladys.onConfigUpdated()`.
-//
-// This module only provides defaults and normalizes the received object, so the
-// rest of the code never has to deal with `undefined`.
+// One Blueair account (the e-mail and password of the Blueair app) and the
+// region it was created in. Every purifier of the account becomes a device.
 // -----------------------------------------------------------------------------
 
-// Defaults: they MUST stay consistent with the `default` values declared in the
-// `config_schema` of the manifest.
+export const LANGUAGES = ['en', 'fr', 'de', 'es'];
+
+// Regions of the Blueair cloud (the app asks for one at sign-up).
+export const REGIONS = ['eu', 'us', 'au', 'cn'];
+
+// Refresh intervals offered in the configuration, in seconds: one to five
+// minutes. The air quality readings themselves are 5-minute averages on the
+// Blueair side, whatever the interval (see src/hub.js).
+export const POLL_INTERVALS = ['60', '120', '180', '300'];
+
+// Filter life left, in percent, at which the filter counts as "to replace".
+export const FILTER_THRESHOLDS = ['5', '10', '15', '20'];
+
 export const DEFAULT_CONFIG = {
-  latitude: 48.8566, // Paris
-  longitude: 2.3522,
-  unit: 'celsius', // 'celsius' | 'fahrenheit'
-  // Seconds between two reads of the polled sensors. Gladys polls at most once
-  // a minute: slower intervals are applied by skipping polls (see
-  // createPoller in src/devices/index.js).
-  poll_frequency: 300,
-  // Reserved key (NOT in config_schema): because the manifest declares both
-  // 'local' and 'cloud' in its `transports` field, Gladys shows a standard
-  // "Prefer the local connection" toggle and sends the user's choice here.
-  // Read-only for the integration; defaults to true.
-  GLADYS_PREFER_LOCAL: true,
+  username: '',
+  password: '',
+  region: 'eu',
+  poll_interval: '120',
+  filter_threshold: '10',
+  language: 'fr',
 };
 
 /**
- * Merge the user config with the defaults.
- * @param {Record<string, unknown>} raw config returned by the SDK
+ * @param {Record<string, unknown>} raw the configuration returned by the SDK
  */
 export function normalizeConfig(raw = {}) {
+  const source = raw && typeof raw === 'object' ? raw : {};
+  const pick = (key, list) => {
+    const value = source[key] === undefined || source[key] === null ? '' : String(source[key]);
+    return list.includes(value) ? value : DEFAULT_CONFIG[key];
+  };
   return {
-    ...DEFAULT_CONFIG,
-    ...raw,
-    // Force the types: config may arrive as strings from a form.
-    latitude: Number(raw.latitude ?? DEFAULT_CONFIG.latitude),
-    longitude: Number(raw.longitude ?? DEFAULT_CONFIG.longitude),
-    poll_frequency: Number(raw.poll_frequency ?? DEFAULT_CONFIG.poll_frequency),
-    // The preference is a boolean; anything but an explicit false means true.
-    GLADYS_PREFER_LOCAL: raw.GLADYS_PREFER_LOCAL !== false,
+    // The Blueair account is an e-mail address: no inner space, case kept.
+    username: typeof source.username === 'string' ? source.username.trim() : '',
+    // Passwords are kept as typed: spaces may be part of them.
+    password: typeof source.password === 'string' ? source.password : '',
+    region: pick('region', REGIONS),
+    pollIntervalMs: Number(pick('poll_interval', POLL_INTERVALS)) * 1000,
+    filterThreshold: Number(pick('filter_threshold', FILTER_THRESHOLDS)),
+    language: LANGUAGES.includes(source.language) ? source.language : DEFAULT_CONFIG.language,
   };
 }
+
+/** Whether the account fields are filled in. */
+export const isConfigured = (config) => config.username !== '' && config.password !== '';

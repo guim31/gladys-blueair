@@ -1,177 +1,386 @@
 {
   "manifest_version": 1,
   "type": "device",
-  "name": "Demo Devices Template",
+  "name": "Blueair",
   "description": {
-    "en": "Starter template showing sensors, a switch, a dimmable light and a smart plug.",
-    "fr": "Template de démarrage : capteurs, interrupteur, lampe variable et prise connectée."
+    "en": "Blueair air purifiers through the Blueair cloud: air quality, filter, fan and modes.",
+    "fr": "Purificateurs d'air Blueair via le cloud Blueair : qualité de l'air, filtre, ventilation, modes.",
+    "de": "Blueair-Luftreiniger über die Blueair-Cloud: Luftqualität, Filter, Lüfter und Modi.",
+    "es": "Purificadores de aire Blueair a través de la nube Blueair: calidad del aire, filtro, modos."
   },
   "version": "1.0.0",
-  "docker_image": "ghcr.io/gladysassistant/integration-template-js:1.0.0",
+  "docker_image": "ghcr.io/guim31/gladys-blueair:1.0.0",
   "gladys_version": ">=5.1.0",
-  "cover_image": "https://raw.githubusercontent.com/GladysAssistant/integration-template-js/master/cover.png",
-  "categories": ["lighting", "security", "environment"],
-  "transports": ["local", "cloud"],
+  "cover_image": "https://raw.githubusercontent.com/guim31/gladys-blueair/main/cover.png",
+  "categories": ["environment", "appliances"],
+  "transports": ["cloud"],
   "config_schema": [
     {
       "key": "intro",
       "type": "section",
-      "label": { "en": "Getting started", "fr": "Pour commencer" },
+      "label": {
+        "en": "Your Blueair account",
+        "fr": "Votre compte Blueair",
+        "de": "Dein Blueair-Konto",
+        "es": "Su cuenta Blueair"
+      },
       "description": {
-        "en": "The demo weather station reads real data from the free Open-Meteo API: pick the coordinates to observe. No account, no API key.",
-        "fr": "La station météo de démonstration lit de vraies données via l'API gratuite Open-Meteo : choisissez les coordonnées à observer. Pas de compte, pas de clé d'API."
+        "en": "Enter the e-mail and password you use in the Blueair app, and the region chosen when the account was created. Every Blueair device of the account appears in the Discovery tab. The integration goes through the Blueair cloud: an Internet connection is needed. Not affiliated with Blueair or Unilever.",
+        "fr": "Saisissez l'e-mail et le mot de passe de l'appli Blueair, et la région choisie à la création du compte. Chaque appareil Blueair du compte apparaît dans l'onglet Découverte. L'intégration passe par le cloud Blueair : une connexion Internet est nécessaire. Sans lien avec Blueair ni Unilever.",
+        "de": "Gib die E-Mail-Adresse und das Passwort der Blueair-App ein sowie die Region, die beim Anlegen des Kontos gewählt wurde. Jedes Blueair-Gerät des Kontos erscheint im Tab Entdecken. Die Integration läuft über die Blueair-Cloud: Eine Internetverbindung ist nötig. Nicht mit Blueair oder Unilever verbunden.",
+        "es": "Introduzca el correo electrónico y la contraseña de la aplicación Blueair, y la región elegida al crear la cuenta. Cada dispositivo Blueair de la cuenta aparece en la pestaña Descubrir. La integración pasa por la nube Blueair: se necesita conexión a Internet. Sin relación con Blueair ni Unilever."
       },
       "links": [
         {
-          "url": "https://open-meteo.com/en/docs",
-          "label": { "en": "Open-Meteo documentation", "fr": "Documentation Open-Meteo" }
+          "url": "https://github.com/guim31/gladys-blueair/blob/main/docs/en.md",
+          "label": {
+            "en": "Documentation",
+            "fr": "Documentation",
+            "de": "Dokumentation",
+            "es": "Documentación"
+          }
         }
       ]
     },
     {
-      "key": "latitude",
-      "type": "number",
-      "label": { "en": "Latitude", "fr": "Latitude" },
-      "description": {
-        "en": "Latitude used for the demo weather sensor.",
-        "fr": "Latitude utilisée par le capteur météo de démonstration."
+      "key": "username",
+      "type": "string",
+      "label": {
+        "en": "Blueair account e-mail",
+        "fr": "E-mail du compte Blueair",
+        "de": "E-Mail des Blueair-Kontos",
+        "es": "Correo electrónico de la cuenta Blueair"
       },
-      "placeholder": { "en": "e.g. 48.8566", "fr": "ex. 48.8566" },
-      "required": true,
-      "default": 48.8566,
-      "min": -90,
-      "max": 90
+      "placeholder": {
+        "en": "e.g. name@example.com",
+        "fr": "ex. nom@example.com",
+        "de": "z. B. name@example.com",
+        "es": "p. ej. nombre@example.com"
+      },
+      "required": true
     },
     {
-      "key": "longitude",
-      "type": "number",
-      "label": { "en": "Longitude", "fr": "Longitude" },
-      "description": {
-        "en": "Longitude used for the demo weather sensor.",
-        "fr": "Longitude utilisée par le capteur météo de démonstration."
+      "key": "password",
+      "type": "secret",
+      "label": {
+        "en": "Blueair account password",
+        "fr": "Mot de passe du compte Blueair",
+        "de": "Passwort des Blueair-Kontos",
+        "es": "Contraseña de la cuenta Blueair"
       },
-      "placeholder": { "en": "e.g. 2.3522", "fr": "ex. 2.3522" },
-      "required": true,
-      "default": 2.3522,
-      "min": -180,
-      "max": 180
+      "required": true
     },
     {
-      "key": "unit",
+      "key": "region",
       "type": "select",
-      "label": { "en": "Temperature unit", "fr": "Unité de température" },
-      "required": false,
-      "default": "celsius",
+      "label": {
+        "en": "Account region",
+        "fr": "Région du compte",
+        "de": "Region des Kontos",
+        "es": "Región de la cuenta"
+      },
+      "description": {
+        "en": "The region chosen in the Blueair app when the account was created.",
+        "fr": "La région choisie dans l'appli Blueair à la création du compte.",
+        "de": "Die Region, die beim Anlegen des Kontos in der Blueair-App gewählt wurde.",
+        "es": "La región elegida en la aplicación Blueair al crear la cuenta."
+      },
+      "required": true,
+      "default": "eu",
       "options": [
-        { "value": "celsius", "label": { "en": "Celsius", "fr": "Celsius" } },
-        { "value": "fahrenheit", "label": { "en": "Fahrenheit", "fr": "Fahrenheit" } }
+        {
+          "value": "eu",
+          "label": { "en": "Europe", "fr": "Europe", "de": "Europa", "es": "Europa" }
+        },
+        {
+          "value": "us",
+          "label": {
+            "en": "North America",
+            "fr": "Amérique du Nord",
+            "de": "Nordamerika",
+            "es": "América del Norte"
+          }
+        },
+        {
+          "value": "au",
+          "label": { "en": "Australia", "fr": "Australie", "de": "Australien", "es": "Australia" }
+        },
+        {
+          "value": "cn",
+          "label": { "en": "China", "fr": "Chine", "de": "China", "es": "China" }
+        }
       ]
     },
     {
-      "key": "poll_frequency",
-      "type": "number",
-      "label": { "en": "Refresh interval (s)", "fr": "Intervalle de rafraîchissement (s)" },
+      "key": "poll_interval",
+      "type": "select",
+      "label": {
+        "en": "Refresh interval",
+        "fr": "Intervalle de rafraîchissement",
+        "de": "Aktualisierungsintervall",
+        "es": "Intervalo de actualización"
+      },
       "description": {
-        "en": "How often sensors are polled, in seconds (one minute minimum).",
-        "fr": "Fréquence d'interrogation des capteurs, en secondes (une minute minimum)."
+        "en": "How often the devices are read from the Blueair cloud. Air quality values are 5-minute averages.",
+        "fr": "Fréquence de lecture des appareils sur le cloud Blueair. La qualité de l'air est une moyenne sur 5 minutes.",
+        "de": "Wie oft die Geräte aus der Blueair-Cloud gelesen werden. Luftqualitätswerte sind 5-Minuten-Mittel.",
+        "es": "Frecuencia de lectura de los dispositivos en la nube Blueair. La calidad del aire es una media de 5 minutos."
       },
       "required": false,
-      "default": 300,
-      "min": 60,
-      "max": 3600
+      "default": "120",
+      "options": [
+        {
+          "value": "60",
+          "label": { "en": "1 minute", "fr": "1 minute", "de": "1 Minute", "es": "1 minuto" }
+        },
+        {
+          "value": "120",
+          "label": { "en": "2 minutes", "fr": "2 minutes", "de": "2 Minuten", "es": "2 minutos" }
+        },
+        {
+          "value": "180",
+          "label": { "en": "3 minutes", "fr": "3 minutes", "de": "3 Minuten", "es": "3 minutos" }
+        },
+        {
+          "value": "300",
+          "label": { "en": "5 minutes", "fr": "5 minutes", "de": "5 Minuten", "es": "5 minutos" }
+        }
+      ]
+    },
+    {
+      "key": "filter_threshold",
+      "type": "select",
+      "label": {
+        "en": "Filter to replace at",
+        "fr": "Filtre à changer à",
+        "de": "Filter wechseln bei",
+        "es": "Filtro por cambiar al"
+      },
+      "description": {
+        "en": "Filter life left at which the filter counts as to replace (feature and scene trigger).",
+        "fr": "Durée de vie restante à laquelle le filtre est à changer (fonctionnalité et déclencheur de scène).",
+        "de": "Restliche Filterlebensdauer, ab der der Filter zu wechseln ist (Funktion und Szenen-Auslöser).",
+        "es": "Vida útil restante a la que el filtro debe cambiarse (función y disparador de escena)."
+      },
+      "required": false,
+      "default": "10",
+      "options": [
+        { "value": "5", "label": { "en": "5 %", "fr": "5 %", "de": "5 %", "es": "5 %" } },
+        { "value": "10", "label": { "en": "10 %", "fr": "10 %", "de": "10 %", "es": "10 %" } },
+        { "value": "15", "label": { "en": "15 %", "fr": "15 %", "de": "15 %", "es": "15 %" } },
+        { "value": "20", "label": { "en": "20 %", "fr": "20 %", "de": "20 %", "es": "20 %" } }
+      ]
+    },
+    {
+      "key": "language",
+      "type": "select",
+      "label": {
+        "en": "Language of the feature names",
+        "fr": "Langue des noms de fonctionnalités",
+        "de": "Sprache der Funktionsnamen",
+        "es": "Idioma de los nombres de funciones"
+      },
+      "description": {
+        "en": "Used for the devices added from now on, and the messages of the integration.",
+        "fr": "Pour les appareils ajoutés désormais, et les messages de l'intégration.",
+        "de": "Für die ab jetzt hinzugefügten Geräte und die Meldungen der Integration.",
+        "es": "Para los dispositivos añadidos a partir de ahora y los mensajes de la integración."
+      },
+      "required": false,
+      "default": "fr",
+      "options": [
+        {
+          "value": "en",
+          "label": { "en": "English", "fr": "English", "de": "English", "es": "English" }
+        },
+        {
+          "value": "fr",
+          "label": { "en": "Français", "fr": "Français", "de": "Français", "es": "Français" }
+        },
+        {
+          "value": "de",
+          "label": { "en": "Deutsch", "fr": "Deutsch", "de": "Deutsch", "es": "Deutsch" }
+        },
+        {
+          "value": "es",
+          "label": { "en": "Español", "fr": "Español", "de": "Español", "es": "Español" }
+        }
+      ]
     }
   ],
   "actions": [
     {
-      "key": "test_weather",
-      "label": { "en": "Test the weather provider", "fr": "Tester le fournisseur météo" },
-      "timeout_seconds": 30
-    },
-    {
-      "key": "identify",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "fields": [
-        {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
-        }
-      ]
+      "key": "test_connection",
+      "label": {
+        "en": "Test the connection",
+        "fr": "Tester la connexion",
+        "de": "Verbindung testen",
+        "es": "Probar la conexión"
+      },
+      "description": {
+        "en": "Logs in to the Blueair account and lists its devices.",
+        "fr": "Se connecte au compte Blueair et liste ses appareils.",
+        "de": "Meldet sich beim Blueair-Konto an und listet seine Geräte auf.",
+        "es": "Inicia sesión en la cuenta Blueair y lista sus dispositivos."
+      },
+      "timeout_seconds": 90
     }
   ],
   "scene_triggers": [
     {
-      "key": "motion_detected",
-      "label": { "en": "Motion detected", "fr": "Mouvement détecté" },
+      "key": "filter_to_replace",
+      "label": {
+        "en": "Blueair filter to replace",
+        "fr": "Filtre Blueair à changer",
+        "de": "Blueair-Filter wechseln",
+        "es": "Filtro Blueair por cambiar"
+      },
       "description": {
-        "en": "A demo motion sensor saw a person or an animal move.",
-        "fr": "Un détecteur de démonstration a vu bouger une personne ou un animal."
+        "en": "Once per filter, when its life left reaches the threshold of the configuration.",
+        "fr": "Une fois par filtre, quand sa durée de vie restante atteint le seuil de la configuration.",
+        "de": "Einmal pro Filter, wenn seine Restlebensdauer die Schwelle der Konfiguration erreicht.",
+        "es": "Una vez por filtro, cuando su vida útil restante alcanza el umbral de la configuración."
       },
       "fields": [
         {
           "key": "device",
           "type": "select",
           "source": "devices",
-          "label": { "en": "Sensor", "fr": "Détecteur" }
-        },
-        {
-          "key": "target",
-          "type": "multi_select",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" },
-          "options": [
-            { "value": "person", "label": { "en": "Person", "fr": "Personne" } },
-            { "value": "animal", "label": { "en": "Animal", "fr": "Animal" } }
-          ]
+          "label": {
+            "en": "Device (empty: any)",
+            "fr": "Appareil (vide : tous)",
+            "de": "Gerät (leer: alle)",
+            "es": "Aparato (vacío: todos)"
+          }
         }
       ],
       "variables": [
         {
-          "key": "target",
+          "key": "device_name",
           "type": "string",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" }
+          "label": {
+            "en": "Device name",
+            "fr": "Nom de l'appareil",
+            "de": "Name des Geräts",
+            "es": "Nombre del dispositivo"
+          }
+        },
+        {
+          "key": "model",
+          "type": "string",
+          "label": { "en": "Model", "fr": "Modèle", "de": "Modell", "es": "Modelo" }
+        },
+        {
+          "key": "filter_life",
+          "type": "number",
+          "label": {
+            "en": "Filter life left (%)",
+            "fr": "Durée de vie restante (%)",
+            "de": "Restlebensdauer (%)",
+            "es": "Vida útil restante (%)"
+          }
         }
       ]
     }
   ],
   "scene_actions": [
     {
-      "key": "identify_device",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "description": {
-        "en": "Make a device signal itself (the demo light blinks).",
-        "fr": "Fait se signaler un appareil (la lampe de démonstration clignote)."
+      "key": "set_mode",
+      "label": {
+        "en": "Set the Blueair mode",
+        "fr": "Choisir le mode Blueair",
+        "de": "Blueair-Modus wählen",
+        "es": "Elegir el modo Blueair"
       },
-      "timeout_seconds": 15,
+      "description": {
+        "en": "One device, or every device that offers the mode.",
+        "fr": "Un appareil, ou tous ceux qui proposent ce mode.",
+        "de": "Ein Gerät oder alle Geräte, die diesen Modus bieten.",
+        "es": "Un dispositivo, o todos los que ofrecen este modo."
+      },
+      "timeout_seconds": 60,
       "fields": [
         {
           "key": "device",
           "type": "select",
           "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
+          "label": {
+            "en": "Device (empty: all)",
+            "fr": "Appareil (vide : tous)",
+            "de": "Gerät (leer: alle)",
+            "es": "Aparato (vacío: todos)"
+          }
+        },
+        {
+          "key": "mode",
+          "type": "select",
+          "label": { "en": "Mode", "fr": "Mode", "de": "Modus", "es": "Modo" },
+          "required": true,
+          "default": "auto",
+          "options": [
+            {
+              "value": "auto",
+              "label": { "en": "Auto", "fr": "Auto", "de": "Automatisch", "es": "Automático" }
+            },
+            {
+              "value": "night",
+              "label": { "en": "Night", "fr": "Nuit", "de": "Nacht", "es": "Noche" }
+            },
+            {
+              "value": "eco",
+              "label": { "en": "Eco", "fr": "Éco", "de": "Eco", "es": "Eco" }
+            },
+            {
+              "value": "manual",
+              "label": { "en": "Manual", "fr": "Manuel", "de": "Manuell", "es": "Manual" }
+            }
+          ]
         }
       ],
       "outputs": [
         {
-          "key": "signalled",
-          "type": "boolean",
-          "label": { "en": "Device signalled", "fr": "Appareil signalé" }
+          "key": "count",
+          "type": "number",
+          "label": {
+            "en": "Devices changed",
+            "fr": "Appareils modifiés",
+            "de": "Geänderte Geräte",
+            "es": "Aparatos cambiados"
+          }
         }
       ]
     }
   ],
   "widgets": [
     {
-      "key": "demo_status",
-      "label": { "en": "Demo status", "fr": "État de la démo" },
-      "description": {
-        "en": "Live temperature and plug power, plug connection and observed location.",
-        "fr": "Température et puissance en direct, connexion de la prise, position observée."
+      "key": "purifier",
+      "label": {
+        "en": "Blueair purifiers",
+        "fr": "Purificateurs Blueair",
+        "de": "Blueair-Luftreiniger",
+        "es": "Purificadores Blueair"
       },
-      "icon": "activity",
-      "action_timeout_seconds": 15
+      "description": {
+        "en": "Air quality and filters at a glance; modes in one tap.",
+        "fr": "Qualité de l'air et filtres d'un coup d'œil ; modes en un geste.",
+        "de": "Luftqualität und Filter auf einen Blick; Modi mit einem Tipp.",
+        "es": "Calidad del aire y filtros de un vistazo; modos con un toque."
+      },
+      "icon": "wind",
+      "action_timeout_seconds": 60,
+      "settings": [
+        {
+          "key": "device",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "Device (empty: all)",
+            "fr": "Appareil (vide : tous)",
+            "de": "Gerät (leer: alle)",
+            "es": "Aparato (vacío: todos)"
+          }
+        }
+      ]
     }
   ]
 }
