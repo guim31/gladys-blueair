@@ -130,6 +130,7 @@ export class BlueairHub {
     this.blocked = null;
     this.discoveredAt = null;
     this.legacyAccount = false;
+    this.legacyRefused = false;
     this.pausedUntil = 0;
     this.transports = new Map();
     this.connection = null;
@@ -231,6 +232,7 @@ export class BlueairHub {
       },
       onNotice: (message) => logger.info(message),
     });
+    this.legacyRefused = false;
     this.legacy = new LegacyClient({
       username: config.username,
       password: config.password,
@@ -422,6 +424,11 @@ export class BlueairHub {
   /** The devices of the historical cloud; none when it does not know the account. */
   async discoverLegacy() {
     const found = new Map();
+    if (this.legacyRefused) {
+      // Refused once with the current credentials: no device of that
+      // generation, the historical cloud is not asked again.
+      return this.keepLegacy(found);
+    }
     try {
       if (!(await this.legacy.connect())) {
         this.legacyAccount = false;
@@ -445,22 +452,29 @@ export class BlueairHub {
       if (!(err instanceof BlueairError)) {
         throw err;
       }
-      // Most accounts have no device there: a refusal is not an error of the integration.
+      // The current cloud accepted the account (it is asked first): a refusal
+      // here only means no device of that generation — the historical cloud
+      // answers an unknown e-mail with a home host, then refuses its login
+      // (probed 2026-10-15), and ha_blueair reads any refusal the same way.
+      // Not an error, and not asked again until the credentials change.
       if (err.kind === ERROR_KINDS.AUTH) {
-        logger.debug(`Older Blueair cloud: ${err.message}`);
+        this.legacyRefused = true;
+        this.legacyAccount = false;
+        logger.debug(`Older Blueair cloud: ${err.message}: no device of that generation`);
       } else {
         this.problem('legacy', `Older Blueair cloud: ${err.message}`);
       }
-      // The devices it held are kept, unreachable, until it answers again.
-      for (const [externalId, record] of this.records) {
-        if (record.profile.api === API.LEGACY) {
-          record.reachable = false;
-          found.set(externalId, {
-            profile: record.profile,
-            readings: record.readings,
-            stale: true,
-          });
-        }
+      this.keepLegacy(found);
+    }
+    return found;
+  }
+
+  /** The devices the historical cloud held: kept, unreachable, until it answers again. */
+  keepLegacy(found) {
+    for (const [externalId, record] of this.records) {
+      if (record.profile.api === API.LEGACY) {
+        record.reachable = false;
+        found.set(externalId, { profile: record.profile, readings: record.readings, stale: true });
       }
     }
     return found;
@@ -1060,6 +1074,7 @@ export class BlueairHub {
     }
     // An explicit test lifts a refused login: the user may have fixed the account.
     this.blocked = null;
+    this.legacyRefused = false;
     this.accountError = null;
     this.pausedUntil = 0;
     await this.cycle({ discover: true });

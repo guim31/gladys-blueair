@@ -42,3 +42,10 @@ Probed from a development session on 2026-10-15, reproduced by the fake cloud:
 access token answers HTTP 403 `{"Message":"User is not authorized to access
 this resource because no identity-based policy allows the execute-api:Invoke
 action"}`.
+
+## Answer of the real historical cloud to an unknown e-mail
+
+Probed on 2026-10-15 from a machine with network: `GET /v2/user/<e-mail>/homehost/`
+answers a home host even for a made-up e-mail, and its login is then refused.
+The fake cloud does the same by default (`unknownHomeHost = 'host'`); the 404
+blueair_api also handles is `unknownHomeHost = '404'`.

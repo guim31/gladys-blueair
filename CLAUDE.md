@@ -254,8 +254,13 @@ long, et sur un « Sie »/« Ihr… » de politesse en allemand. Le store exige 
 (`accounts.login` puis `accounts.getJWT`, jeton d'identité valable ~5 min) puis BlueCloud
 (`POST /prod/c/login` → jeton d'accès JWT dont la revendication `username` est l'identifiant
 utilisateur des chemins, `exp` son expiration). Les Classic i et Sense+ passent par l'ancien cloud
-`api.blueair.io` (home host, login basic → `X-AUTH-TOKEN`). La plupart des comptes y sont inconnus
-(404 sur le home host) : ce n'est pas une erreur. Un appareil listé par les deux clouds (même MAC)
+`api.blueair.io` (home host, login basic → `X-AUTH-TOKEN`). La plupart des comptes y sont inconnus :
+le vrai cloud donne pourtant un home host à n'importe quel e-mail, puis **refuse le login**
+(sonde de l'orchestrateur, 15/10/2026 ; blueair_api gère aussi un 404 sur le home host). Le cloud
+actuel est interrogé d'abord : s'il accepte le compte, un refus du cloud historique veut dire
+« aucun appareil de cette génération » — ni erreur dans le statut, ni nouvel essai jusqu'à un
+changement d'identifiants ou un « Tester la connexion » (ha_blueair lit tout `LoginError` ainsi).
+S'il refuse, c'est « identifiants refusés » et le cloud historique n'est pas interrogé. Un appareil listé par les deux clouds (même MAC)
 n'est gardé qu'une fois, sur le cloud actuel. Les clés d'application de `src/blueair/` sont les
 clés publiques de l'appli (publiées dans blueair_api, MIT) : pas des secrets.
 

@@ -5,7 +5,7 @@
 //   node scripts/probe.mjs [region]
 //     Runs the real login path with a made-up account, up to the refusal:
 //     Gigya refuses the login (403042), BlueCloud refuses a made-up token,
-//     the historical cloud does not know the e-mail. Proves the endpoints,
+//     the historical cloud refuses the e-mail. Proves the endpoints,
 //     the public keys and the parsing of the answers, with no account.
 //
 //   BLUEAIR_USERNAME=... BLUEAIR_PASSWORD=... node scripts/probe.mjs [region]
@@ -140,8 +140,10 @@ export async function probe({
       }
     }
   } catch (err) {
-    // A real account the historical cloud refuses is an account without such device.
-    const expected = real && err.kind === ERROR_KINDS.AUTH;
+    // The historical cloud gives a home host to any e-mail, then refuses the
+    // login of an account it does not know: for a made-up account, and for a
+    // real one without a device of that generation, a refusal is expected.
+    const expected = err.kind === ERROR_KINDS.AUTH;
     step(expected, `historical cloud: ${err.kind ?? 'error'}: ${err.message}`);
   }
   return ok;

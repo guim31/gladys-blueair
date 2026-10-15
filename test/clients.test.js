@@ -180,9 +180,15 @@ test('every region has its endpoints; an unknown one is refused', () => {
 });
 
 test('historical cloud: no account, then login, list, read, write', async () => {
+  // An unknown e-mail: a home host, then a refused login (the real answer, 2026-10-15)…
   const none = new FakeBlueair();
   const client = new LegacyClient({ username: EMAIL, password: PASSWORD, request: none.request });
-  assert.equal(await client.connect(), false, 'most accounts are unknown there');
+  await assert.rejects(client.connect(), { kind: ERROR_KINDS.AUTH });
+  // … or a 404 on the home host (handled by blueair_api too).
+  const unknown = new FakeBlueair();
+  unknown.unknownHomeHost = '404';
+  const other = new LegacyClient({ username: EMAIL, password: PASSWORD, request: unknown.request });
+  assert.equal(await other.connect(), false);
 
   const device = legacyClassic480i();
   const cloud = new FakeBlueair({ legacyDevices: [device] });

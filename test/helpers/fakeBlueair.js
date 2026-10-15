@@ -97,6 +97,8 @@ export class FakeBlueair {
     this.pendingRegistration = null;
     this.registrationCompleted = false;
     this.legacy = legacyDevices.length > 0;
+    // What the historical cloud answers for an unknown e-mail: 'host' (seen) or '404'.
+    this.unknownHomeHost = 'host';
     this.requests = [];
     this.logins = 0;
     this.sessions = new Set();
@@ -304,12 +306,19 @@ export class FakeBlueair {
     }
     const path = decodeURIComponent(target.pathname);
     if (target.host === 'api.blueair.io') {
-      if (path === `/v2/user/${this.email}/homehost/` && this.legacy) {
-        return { status: 200, headers: {}, body: '"eu.home.blueair.io"' };
+      // The real cloud gives a home host even for an unknown e-mail (the probe
+      // of 2026-10-15), then refuses its login; blueair_api also handles a 404.
+      if (/^\/v2\/user\/[^/]+\/homehost\/$/.test(path)) {
+        return this.legacy || this.unknownHomeHost === 'host'
+          ? { status: 200, headers: {}, body: '"eu.home.blueair.io"' }
+          : { status: 404, headers: {}, body: '' };
       }
       return { status: 404, headers: {}, body: '' };
     }
-    if (path === `/v2/user/${this.email}/login/`) {
+    if (/^\/v2\/user\/[^/]+\/login\/$/.test(path)) {
+      if (!this.legacy || path !== `/v2/user/${this.email}/login/`) {
+        return { status: 404, headers: {}, body: '' };
+      }
       const expected = `Basic ${Buffer.from(`${this.email}:${this.password}`).toString('base64')}`;
       if (headers.authorization !== expected) {
         return { status: 200, headers: {}, body: 'false' };

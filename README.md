@@ -68,7 +68,10 @@ links it from the Configuration screen.
 - **Historical cloud** (`src/blueair/legacy.js`): `api.blueair.io` gives the
   home host of the account, a basic-auth login gives an `X-AUTH-TOKEN`, then
   per device `info`, `attributes`, `datapoint` and `attribute/<name>` writes.
-  Most accounts are unknown there (`404`): no device of that generation. A
+  Most accounts are unknown there: it gives any e-mail a home host, then
+  refuses its login. The current cloud is asked first; when it accepts the
+  account, a refusal of the historical one just means no device of that
+  generation — no error, not asked again until the credentials change. A
   device listed by both clouds (same MAC address) is kept once, on the current
   one.
 - **What a device can do** comes from its schema (`dc`/`ds`) and the states it

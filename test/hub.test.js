@@ -443,3 +443,32 @@ test('a new configuration during a reading waits for it, then looks for the devi
   const power = w.fake.discoveredDevices[0].features.find((f) => f.external_id.endsWith(':power'));
   assert.equal(power.name, 'Marche');
 });
+
+test('the historical cloud refusing an account the current cloud accepted: no old device, no error', async (t) => {
+  const w = await world(t, { devices: ['max211i'] });
+  assert.equal(w.fake.discoveredDevices.length, 1);
+  assert.deepEqual(w.fake.connectionStatus, { connected: true }, 'no failure message');
+  const logins = () => w.cloud.requests.filter((r) => r.path.endsWith('/login/')).length;
+  assert.equal(logins(), 1);
+  // Not asked again: neither at the next discoveries, nor at a Scan.
+  w.clock.advance(7 * 60 * 60_000);
+  await w.hub.cycle();
+  await w.fake.scanRequest();
+  assert.equal(logins(), 1);
+  assert.deepEqual(w.fake.connectionStatus, { connected: true });
+  // New credentials: asked again, once (the saved Blueair session still works).
+  await w.fake.configUpdated({ ...CONFIG, password: 'changed' });
+  assert.equal(logins(), 2);
+  assert.deepEqual(w.fake.connectionStatus, { connected: true });
+});
+
+test('both clouds refusing: the credentials are refused, said once, never retried', async (t) => {
+  const w = await world(t, { config: { ...CONFIG, password: 'wrong' }, legacyDevices: [] });
+  assert.equal(w.fake.connectionStatus.connected, false);
+  assert.match(w.fake.connectionStatus.message.fr, /refusé par Blueair/);
+  const requests = w.cloud.requests.length;
+  await w.hub.cycle();
+  await w.fake.scanRequest();
+  assert.equal(w.cloud.requests.length, requests);
+  assert.ok(!w.cloud.requests.some((r) => r.host === 'api.blueair.io'));
+});
