@@ -1,61 +1,187 @@
-# Demo Devices Template
+# Blueair
 
-This is the user documentation of the integration. Gladys re-hosts this file
-and shows a permanent **Documentation** link to it in the Configuration screen
-(in the user's language, with English as the fallback) — it is when
-configuring that the user needs it most. Keep the short onboarding hints in
-the `section` blocks of the manifest `config_schema`; put the long
-step-by-step (screenshots, troubleshooting…) here.
+Follow and control your **Blueair air purifiers** from Gladys: air quality
+(PM2.5, PM10, VOC), filter life, power, fan speed, auto / night / eco modes,
+display brightness and child lock — through the Blueair cloud, the same one
+the Blueair app uses. Get told once when a filter needs replacing, and put
+every purifier in night mode with one tap at bedtime.
 
-## What you get
+> **Developed without the hardware: feedback welcome.** This integration was
+> built and tested against real answers of the Blueair cloud captured by the
+> open-source projects [blueair_api](https://github.com/dahlb/blueair_api) and
+> [ha_blueair](https://github.com/dahlb/ha_blueair), not against a purifier
+> or an account. If something does not work as described, please say so on
+> the [Gladys forum](https://community.gladysassistant.com) or in the
+> [issues](https://github.com/guim31/gladys-blueair/issues).
 
-Six demo devices show up after installation: a weather station (real data
-from Open-Meteo), a switch, a dimmable light, a smart plug with power
-metering, a motion sensor and a camera.
+Not affiliated with, endorsed or supported by Blueair or Unilever. Blueair is a
+trademark of its owner.
 
-## Configuration
+## What you need
 
-1. Open the **Configuration** tab of the integration.
-2. Set the **latitude** and **longitude** the demo weather station should
-   observe (they default to Paris), and pick your temperature unit.
-   The **refresh interval** sets how often the weather station and the
-   plug's power are read: every 5 minutes by default, every minute at most.
-3. Save: the devices appear in the **Discovery** tab, ready to be added.
+- Gladys Assistant 5.1.0 or later.
+- A Blueair purifier connected to Wi-Fi and set up in the **Blueair app**
+  (Blue Pure Max, Protect, DustMagnet, HealthProtect, Signature, Classic,
+  2-in-1…).
+- The **e-mail and password** of your Blueair account, and its **region**
+  (the one chosen when the account was created).
+- An Internet connection: everything goes through the Blueair cloud, there is
+  no local control of Blueair devices.
 
-The **Prefer the local connection** toggle drives the demo plug: it reports
-the channel it actually uses as a badge (local or cloud), with an orange dot
-when it runs degraded (local refused, cloud fallback).
+## Set up
 
-## Actions
+1. Install the integration from the Gladys catalog.
+2. In **Configuration**, enter the **Blueair account e-mail**, the **Blueair
+   account password** and the **Account region** (Europe, North America,
+   Australia, China).
+3. Save, then click **Test the connection**: the message under the button
+   lists the devices of the account.
+4. Open the **Discover** tab: one device per Blueair device of the account.
+   Click **Add**, pick a room, save.
 
-- **Test the weather provider** — performs a live request to Open-Meteo and
-  shows the current temperature and humidity under the button.
-- **Identify a device** — pick one of your devices in the list and it will
-  signal itself (the demo light "blinks" in the logs).
+Options:
+
+- **Refresh interval**: how often the devices are read, from 1 to 5 minutes
+  (2 minutes by default).
+- **Filter to replace at**: the filter life left (5, 10, 15 or 20 %, 10 % by
+  default) at which the filter counts as to replace.
+- **Language of the feature names**: English, French, German or Spanish. The
+  names are given when a device is added (French by default).
+
+The password is only sent to Blueair. The integration keeps the Blueair
+session under `/data` so a restart does not log in again.
+
+## The device of each purifier
+
+### Features
+
+Each feature appears only when the device has it.
+
+| Feature            | What it is                                                                 |
+| ------------------ | -------------------------------------------------------------------------- |
+| Power              | Switch: on, the purifier runs; off, standby                                |
+| Fan speed          | The manual speed, within the bounds of the model (see below)               |
+| Mode               | Manual, Auto, Night, Eco (Eco on the Signature series only)                |
+| Display brightness | Brightness of the display and lights, 0–100 (0–4 on Classic models)        |
+| Child lock         | Locks the buttons of the purifier                                          |
+| Filter life        | Filter life left, in %                                                     |
+| Filter to replace  | 1 when the filter life left reaches the threshold of the configuration     |
+| PM2.5              | Fine particles, µg/m³                                                      |
+| PM10               | Coarse particles, µg/m³                                                    |
+| VOC                | Volatile organic compounds, ppb (Protect, HealthProtect, Classic i-series) |
+| CO2                | Carbon dioxide, ppm (Classic i-series)                                     |
+| Temperature        | °C, on the models with the sensor                                          |
+| Humidity           | %, on the models with the sensor                                           |
+| Online             | 1 when the purifier is connected to the Blueair cloud                      |
+
+Choosing a fan speed switches the purifier to manual mode, like the app does.
+Particle values are shown the way the Blueair app shows them (the cloud sends
+them 1.32 times higher; the integration corrects them like ha_blueair does).
+PM1 is not published: Gladys has no PM1 sensor.
+
+### Models
+
+- **Fan speed bounds**: 0–91 on the four-speed models (Blue Pure Max,
+  Protect, 2-in-1), 0–100 on the others, 1–3 on humidifiers, 0–3 on the
+  Classic models of the older cloud (0 is off there).
+- **ComfortPure 3-in-1 (T10i, T20i)**: these devices heat. They are **read
+  only** in Gladys (air quality, temperature, filter): a wrong scene must
+  never leave a heater on. Use the Blueair app to drive them.
+- **Older models** (Classic 205/280i/290i/480i/680i, Sense+) live on the older
+  Blueair cloud: they are found with the same account. Their filter only says
+  "to replace" or not, without a percentage.
+- Humidifiers on the account also appear, with their power, speed, modes and
+  sensors.
+
+## Dashboard widget
+
+The **Blueair purifiers** widget, two layouts:
+
+- **every device** (no device chosen in its settings): one line per device —
+  its mode and PM2.5, colored green, orange or red by the air quality,
+  "Filter to replace" when it is due, "Offline" when it is not connected —
+  and two buttons, **All in auto** and **All in night**;
+- **one device**: live tiles (PM2.5, filter life, temperature or VOC), its
+  mode, filter and connection, and buttons: **Turn off** / **Turn on** and its
+  modes (Auto, Night, Eco). The current mode has a check mark.
 
 ## Scenes
 
-The integration adds its own cards to the scene editor (Gladys 5.1 or
-later), under the **Integrations** category:
+### Trigger
 
-- **Motion detected** (trigger) — starts the scene when a demo motion sensor
-  sees something move. Optionally pick the sensor and what moved (person,
-  animal); left empty, any detection matches. The following actions can
-  read what moved with `{{triggerEvent.data.target}}`.
-- **Identify a device** (action) — makes the chosen device signal itself.
-  It returns whether the device could signal itself, so the following
-  actions can depend on it.
+**Blueair filter to replace**: once per filter, when its life left reaches the
+threshold of the configuration (or when an older Classic says its filter is to
+replace). Not again for the same filter, even after a restart; once the filter
+is replaced, the next one will be announced. Filter: a device (empty: any).
+Information passed on: device name, model, filter life left (%).
 
-## Dashboard
+### Action
 
-Add the **Demo status** widget to a dashboard: it shows the live
-temperature of the weather station and the power of the office plug, the
-connection the plug currently uses (orange when degraded) and the observed
-location. Its **Identify the light** button makes the demo light signal
-itself.
+**Set the Blueair mode**: puts one device, or every device that offers the
+mode (device left empty), in Auto, Night, Eco or Manual mode. Returns the
+number of devices changed.
+
+The device features can also be used directly in scenes: turn a purifier on
+or off, set its fan speed, or start a scene when PM2.5 goes above a value.
+
+### Scene ideas
+
+- **Bedtime**: at 10:30 pm, _Set the Blueair mode_ → Night, every device.
+  In the morning, back to Auto.
+- **Filter reminder**: trigger _Blueair filter to replace_ → send a message
+  "Replace the filter of {device name} ({filter life left} % left)".
+- **Smoke from the kitchen**: when the PM2.5 of the kitchen purifier goes
+  above 35 µg/m³, set its fan speed to the maximum; back to Auto when it
+  drops below 10.
+- **Nobody home**: when the house is empty, turn the purifiers off; on the
+  way back, turn them on in Auto.
+
+## Refresh and Blueair cloud limits
+
+Blueair publishes no quota for its cloud. The integration stays light:
+
+- one request per device at each refresh (1 to 5 minutes, 2 by default);
+- the air quality values are 5-minute averages on the Blueair side: they are
+  read at most once every 5 minutes;
+- the list of devices is read again every 6 hours (or with **Scan** in the
+  Discover tab);
+- the login is kept under `/data` and renewed from the session, without
+  sending the password again;
+- a refused password stops every request until the configuration changes
+  (repeated attempts would lock the account); a "too many requests" answer
+  pauses everything for 10 minutes.
+
+Gladys does not poll these devices: the integration refreshes them on its own
+timer. Changes made in the Blueair app show in Gladys at the next refresh.
 
 ## Troubleshooting
 
-The integration logs everything it does: check the integration logs from the
-Gladys UI (or `docker logs` on the host) with `LOG_LEVEL=debug` for the full
-detail.
+- **"e-mail or password refused by Blueair"**: check them in the Blueair app,
+  then save the configuration again (the integration stops trying until then).
+- **"open the Blueair app once and complete your profile (name)"**: Blueair
+  now requires a name on the account. Open the app, complete the profile, then
+  click **Test the connection**.
+- **Connected, but no device**: the region is probably wrong — try the other
+  one (accounts created in the United Kingdom are often in "Europe").
+- **A purifier shows "Offline"**: check its Wi-Fi in the Blueair app. The
+  Blueair cloud sometimes reports a working purifier as offline: recent sensor
+  values count as a sign of life.
+- **Values do not change**: the air quality values only change every 5
+  minutes on the Blueair side.
+- **Logs**: set `LOG_LEVEL=debug` to see every request (never the password or
+  the tokens).
+
+## Limits
+
+- Cloud only: no local control, and nothing works without Internet or when
+  the Blueair cloud is down.
+- No real-time updates: changes appear at the next refresh (MQTT, used by the
+  app, is not implemented).
+- The ComfortPure 3-in-1 heaters are read only. Their heating and cooling
+  modes are not shown.
+- PM1, the germ shield, the night light, the timer and the humidifier wick are
+  not published.
+- Accounts whose devices live in another region than the account itself
+  (rare) are not supported.
+- Developed without the hardware: the model families follow blueair_api and
+  ha_blueair, which were built with real devices. Feedback is welcome.

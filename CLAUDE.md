@@ -5,9 +5,10 @@ contributors.
 
 ## What this is
 
-A Gladys Assistant **external integration**: a Node.js service (Node 22+, ESM,
-no build step) that runs in its own sandboxed Docker container and talks to
-Gladys through
+The **Blueair** integration of Gladys Assistant: Blueair air purifiers through
+the Blueair cloud. A Gladys **external integration**: a Node.js service (Node
+22+, ESM, no build step) that runs in its own sandboxed Docker container and
+talks to Gladys through
 [`@gladysassistant/integration-sdk`](https://github.com/GladysAssistant/integration-sdk-js),
 its only runtime dependency. It started from the official JavaScript template.
 
@@ -16,8 +17,8 @@ its only runtime dependency. It started from the official JavaScript template.
 ```bash
 npm install
 npm test                                  # node --test, the built-in runner
-node --test test/devices.test.js          # one file
-node --test --test-name-pattern "plug"    # tests whose name matches
+node --test test/hub.test.js              # one file
+node --test --test-name-pattern "filter"  # tests whose name matches
 npm run lint                              # ESLint
 npm run format:check                      # Prettier, as the CI runs it
 npm run format                            # Prettier, fix in place
@@ -31,16 +32,27 @@ pushing.
 ## Architecture
 
 ```
-index.js                          SDK wiring only: handlers registered before connect()
-src/devices/index.js              registry of the device blueprints + dispatch helpers
-src/devices/<type>.js             one device type per file (buildDevice, onPoll, onSetValue...)
-src/scenes.js                     scene action handlers (manifest `scene_actions`)
-src/widgets.js                    dashboard widget handlers (manifest `widgets`)
+index.js                          SDK wiring only (registerHandlers, shutdown, connect)
+src/app.js                        every SDK handler, registered before connect(); returns the hub
+src/hub.js                        the account, the device records, the own polling timer,
+                                  commands, the filter trigger, connection status, transports
+src/devices.js                    Gladys features of a device (names in 4 languages), states
+src/blueair/aws.js                client of the current cloud (Gigya + BlueCloud)
+src/blueair/legacy.js             client of the historical cloud (api.blueair.io)
+src/blueair/model.js              API answers -> profile (what a device can do) + readings
+src/blueair/skus.js               SKU -> product name (from blueair_api)
+src/blueair/http.js               the one network function (fetch), the tests replace it
+src/blueair/errors.js             error kinds (auth, locked, registration, unreachable...)
+src/widgets.js                    dashboard widget `purifier`
+src/scenes.js                     scene action `set_mode`
+src/texts.js                      messages sent to Gladys, in 4 languages
 src/config.js                     DEFAULT_CONFIG (mirrors the manifest defaults) + normalization
-src/weather.js                    example driver (Open-Meteo)
-gladys-assistant-integration.json manifest: name, config_schema, actions, image...
-docs/en.md, docs/fr.md            user documentation, re-hosted by Gladys (mandatory)
-test/                             node --test, against the SDK's fake Gladys (integration-sdk/testing)
+src/store.js                      /data/blueair-state.json (session, token, announced filters)
+scripts/probe.mjs                 probe of the real clouds (made-up account, or read-only real one)
+gladys-assistant-integration.json manifest
+docs/{en,fr,de,es}.md             user documentation, re-hosted by Gladys (same sections)
+test/                             node --test, SDK fake Gladys + fake Blueair cloud
+test/fixtures/blueair/            real device captures of blueair_api, anonymized
 .github/scripts/release.mjs       release helpers (manifest bump, changelog), tested in test/
 ```
 
@@ -62,7 +74,7 @@ test/                             node --test, against the SDK's fake Gladys (in
   in `CHANGELOG.md` (`### Added`, `Changed`, `Fixed`, `Removed`, `Security`).
   Never write a version heading: the Release workflow moves the section, and it
   becomes the notes of the GitHub Release.
-- **Manifest.** Texts are multi-language objects `{ "en": ..., "fr": ... }`:
+- **Manifest.** Texts are multi-language objects `{ "en", "fr", "de", "es" }`:
   `label`, `description` and `placeholder` alike, never a plain string. The
   catalog `description` holds 10 to 100 characters per language. A field the
   older cores do not know needs a higher `gladys_version` minimum
@@ -70,8 +82,10 @@ test/                             node --test, against the SDK's fake Gladys (in
   `type: "provider"`: 5.1.0). `test/manifest.test.js` ties the manifest to the
   code (defaults, action, scene and widget handlers): change both sides
   together.
-- **User-facing text** is bilingual (English and French): action messages,
-  manifest texts, and `docs/en.md` / `docs/fr.md`, kept in sync.
+- **User-facing text** exists in English, French, German and Spanish: action
+  messages, manifest texts, feature names, widget texts and `docs/en.md`,
+  `docs/fr.md`, `docs/de.md`, `docs/es.md` (same sections), kept in sync —
+  `test/i18n.test.js` checks it.
 - **Style.** Prettier formats, ESLint catches mistakes. Comments explain why,
   in English. Tests never touch the network.
 
@@ -233,3 +247,60 @@ long, et sur un « Sie »/« Ihr… » de politesse en allemand. Le store exige 
 - Docs `en`, `fr`, `de`, `es` avec les mêmes sections.
 - Chauffe, ouverture, sécurité : ne rien rendre pilotable « comme un thermostat » ou par un assistant
   vocal quand une erreur serait dangereuse (leçon d'OctoPrint).
+
+## Intégration Blueair (propre à ce dépôt)
+
+**Les deux clouds.** Les purificateurs actuels passent par le cloud « AWS » : Gigya
+(`accounts.login` puis `accounts.getJWT`, jeton d'identité valable ~5 min) puis BlueCloud
+(`POST /prod/c/login` → jeton d'accès JWT dont la revendication `username` est l'identifiant
+utilisateur des chemins, `exp` son expiration). Les Classic i et Sense+ passent par l'ancien cloud
+`api.blueair.io` (home host, login basic → `X-AUTH-TOKEN`). La plupart des comptes y sont inconnus :
+le vrai cloud donne pourtant un home host à n'importe quel e-mail, puis **refuse le login**
+(sonde de l'orchestrateur, 15/10/2026 ; blueair_api gère aussi un 404 sur le home host). Le cloud
+actuel est interrogé d'abord : s'il accepte le compte, un refus du cloud historique veut dire
+« aucun appareil de cette génération » — ni erreur dans le statut, ni nouvel essai jusqu'à un
+changement d'identifiants ou un « Tester la connexion » (ha_blueair lit tout `LoginError` ainsi).
+S'il refuse, c'est « identifiants refusés » et le cloud historique n'est pas interrogé. Un appareil listé par les deux clouds (même MAC)
+n'est gardé qu'une fois, sur le cloud actuel. Les clés d'application de `src/blueair/` sont les
+clés publiques de l'appli (publiées dans blueair_api, MIT) : pas des secrets.
+
+**Pièges relevés (à ne pas refaire)**
+
+- **Gigya bloque un compte après des échecs répétés** : un mot de passe refusé (403042), un compte
+  verrouillé ou une inscription en attente arrêtent toute requête jusqu'à un changement de
+  configuration ou un « Tester la connexion ». Jamais de nouvel essai automatique.
+- **Comptes antérieurs au 22/09/2026** : Gigya répond 206001 « Account Pending Registration »
+  tant que le profil n'a pas de nom ; l'appli le complète en silence (`accounts.setAccountInfo` +
+  `accounts.finalizeRegistration` avec le nom du profil), l'intégration aussi (ha_blueair#421).
+  `scripts/probe.mjs` ne le fait jamais (`completeRegistration: false`).
+- **Réponses réelles de BlueCloud** (sondées le 15/10/2026 depuis une session de code) : un jeton
+  d'identité refusé donne **HTTP 400** `Token invalid or Request Timeout` (traité comme une
+  session à renouveler, donc nouveau login) ; un jeton d'accès refusé donne **HTTP 403** (pas
+  401). Un corps JSON peut porter son propre `statusCode`, qui prime sur le statut HTTP.
+- La session Gigya et le jeton d'accès sont gardés dans `/data/blueair-state.json` (mode 600) : un
+  redémarrage ne renvoie pas le mot de passe. Un jeton refusé est renouvelé depuis la session
+  (`getJWT`), le login complet n'arrive qu'en dernier recours.
+- **Capacités** : lire le schéma `configuration.dc` (contrôles) et `configuration.ds` (capteurs),
+  et compter comme contrôle tout état rapporté que `dc` oublie (H38i, H76i, Mini Restful).
+  Familles de modes : `automode`/`nightmode` (classique) ; `apsubmode` seul (Signature :
+  0 manuel, 2 auto, 3 nuit, 4 éco, chaque écriture suivie de `fanspeed` 11 comme l'appli) ;
+  `mode` (2-en-1 DH3i : 1 manuel, 2 auto, 3 nuit). Une vitesse n'est honorée qu'en mode manuel :
+  sortir du mode d'abord, et attendre 2 s après avoir coupé le mode nuit (sinon l'appareil
+  réécrit sa vitesse).
+- **Vitesses** : 0–91 (quatre crans 11/37/64/91) sur `nb_*`, `high*`, `s_cmb2in1`, `cmb2in1_ii` ;
+  1–3 stockés 11/37/64 sur les humidificateurs (`hum*`) ; 0–3 sur l'ancien cloud, où 0 = éteint
+  (pas de veille : « éteindre » = vitesse 0, « allumer » = dernière vitesse).
+- **Particules** : le cloud actuel les envoie 1,32 fois plus hautes que l'appli ; ha_blueair les
+  divise (correctif du 05/12/2024), l'intégration aussi. Gladys n'a pas de couple PM1 : non publié.
+- **Capteurs** : certains modèles donnent les dernières valeurs dans `sensordata` de `/r/initial`,
+  d'autres seulement par la télémétrie (moyennes 5 min) : lue au plus toutes les 5 minutes.
+- **En ligne** : le cloud dit souvent `online: false` pour un appareil qui marche (ha_blueair#287) :
+  des valeurs de capteurs de moins de 20 min comptent comme signe de vie.
+- **ComfortPure 3-en-1 (`cmb3in1`, T10i/T20i)** : chauffage, donc **lecture seule** (règle de
+  sécurité de la série).
+- `input/binary` seul de son type sur un appareil affiche le libellé générique « État de
+  l'entrée » : d'où deux `input/binary` (« Filtre à changer », « En ligne ») sur chaque appareil
+  qui a un filtre.
+- Proxy des sessions de code : Gigya et `api.blueair.io` sont refusés, BlueCloud
+  (`*.execute-api.*.amazonaws.com`) passe. `scripts/probe.mjs` est à lancer depuis une machine qui
+  a le réseau.

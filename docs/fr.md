@@ -1,67 +1,199 @@
-# Template de démonstration
+# Blueair
 
-Ceci est la documentation utilisateur de l'intégration. Gladys ré-héberge ce
-fichier et affiche un lien **Documentation** permanent vers lui dans l'écran
-de configuration (dans la langue de l'utilisateur, avec l'anglais en repli) —
-c'est au moment de configurer que l'utilisateur en a le plus besoin. Gardez
-les courtes indications d'accueil dans les blocs `section` du `config_schema`
-du manifest ; mettez ici le pas-à-pas détaillé (captures d'écran, dépannage…).
+Suivez et pilotez vos **purificateurs d'air Blueair** depuis Gladys : qualité
+de l'air (PM2.5, PM10, COV), durée de vie du filtre, marche, vitesse du
+ventilateur, modes auto / nuit / éco, luminosité de l'affichage et sécurité
+enfant — via le cloud Blueair, celui qu'utilise l'appli Blueair. Soyez prévenu
+une fois quand un filtre est à changer, et passez tous les purificateurs en
+mode nuit d'un geste au coucher.
 
-## Ce que vous obtenez
+> **Développée sans le matériel : vos retours sont bienvenus.** Cette
+> intégration a été construite et testée sur de vraies réponses du cloud
+> Blueair enregistrées par les projets libres
+> [blueair_api](https://github.com/dahlb/blueair_api) et
+> [ha_blueair](https://github.com/dahlb/ha_blueair), pas sur un purificateur
+> ni un compte. Si quelque chose ne marche pas comme décrit, dites-le sur le
+> [forum Gladys](https://community.gladysassistant.com) ou dans les
+> [issues](https://github.com/guim31/gladys-blueair/issues).
 
-Six appareils de démonstration apparaissent après l'installation : une
-station météo (vraies données Open-Meteo), un interrupteur, une lampe
-variable, une prise connectée avec mesure de puissance, un détecteur de
-mouvement et une caméra.
+Sans lien avec Blueair ni Unilever, qui ne l'approuvent ni ne la prennent en
+charge. Blueair est une marque de son propriétaire.
 
-## Configuration
+## Ce qu'il vous faut
 
-1. Ouvrez l'onglet **Configuration** de l'intégration.
-2. Renseignez la **latitude** et la **longitude** que la station météo de
-   démonstration doit observer (Paris par défaut), et choisissez votre unité
-   de température. L'**intervalle de rafraîchissement** règle la fréquence
-   de lecture de la station météo et de la puissance de la prise : toutes
-   les 5 minutes par défaut, toutes les minutes au plus.
-3. Enregistrez : les appareils apparaissent dans l'onglet **Découverte**,
-   prêts à être ajoutés.
+- Gladys Assistant 5.1.0 ou plus récent.
+- Un purificateur Blueair connecté au Wi-Fi et installé dans l'**appli
+  Blueair** (Blue Pure Max, Protect, DustMagnet, HealthProtect, Signature,
+  Classic, 2-en-1…).
+- L'**e-mail et le mot de passe** de votre compte Blueair, et sa **région**
+  (celle choisie à la création du compte).
+- Une connexion Internet : tout passe par le cloud Blueair, il n'y a pas de
+  pilotage local des appareils Blueair.
 
-Le réglage **Préférer la connexion locale** pilote la prise de
-démonstration : elle affiche en badge le canal réellement utilisé (local ou
-cloud), avec un point orange quand elle fonctionne en mode dégradé (local
-refusé, bascule cloud).
+## Mise en route
 
-## Actions
+1. Installez l'intégration depuis le catalogue de Gladys.
+2. Dans **Configuration**, saisissez l'**E-mail du compte Blueair**, le **Mot
+   de passe du compte Blueair** et la **Région du compte** (Europe, Amérique
+   du Nord, Australie, Chine).
+3. Enregistrez, puis cliquez sur **Tester la connexion** : le message sous le
+   bouton liste les appareils du compte.
+4. Ouvrez l'onglet **Découverte** : un appareil par appareil Blueair du
+   compte. Cliquez sur **Ajouter**, choisissez une pièce, enregistrez.
 
-- **Tester le fournisseur météo** — effectue une requête en direct vers
-  Open-Meteo et affiche la température et l'humidité actuelles sous le
-  bouton.
-- **Identifier un appareil** — choisissez un de vos appareils dans la liste
-  et il se signale (la lampe de démonstration « clignote » dans les logs).
+Options :
+
+- **Intervalle de rafraîchissement** : la fréquence de lecture des appareils,
+  de 1 à 5 minutes (2 minutes par défaut).
+- **Filtre à changer à** : la durée de vie restante (5, 10, 15 ou 20 %, 10 %
+  par défaut) à laquelle le filtre est à changer.
+- **Langue des noms de fonctionnalités** : anglais, français, allemand ou
+  espagnol. Les noms sont donnés à l'ajout d'un appareil (français par
+  défaut).
+
+Le mot de passe n'est envoyé qu'à Blueair. L'intégration garde la session
+Blueair dans `/data` : un redémarrage ne reconnecte pas le compte.
+
+## L'appareil de chaque purificateur
+
+### Fonctionnalités
+
+Chaque fonctionnalité n'apparaît que si l'appareil l'a.
+
+| Fonctionnalité            | Ce que c'est                                                                |
+| ------------------------- | --------------------------------------------------------------------------- |
+| Marche                    | Interrupteur : allumé, le purificateur tourne ; éteint, en veille           |
+| Vitesse du ventilateur    | La vitesse manuelle, dans les bornes du modèle (voir plus bas)              |
+| Mode                      | Manuel, Auto, Nuit, Éco (Éco sur la série Signature seulement)              |
+| Luminosité de l'affichage | Luminosité de l'affichage et des voyants, 0–100 (0–4 sur les Classic)       |
+| Sécurité enfant           | Verrouille les boutons du purificateur                                      |
+| Durée de vie du filtre    | Durée de vie restante du filtre, en %                                       |
+| Filtre à changer          | 1 quand la durée de vie restante atteint le seuil de la configuration       |
+| PM2.5                     | Particules fines, µg/m³                                                     |
+| PM10                      | Particules grossières, µg/m³                                                |
+| COV                       | Composés organiques volatils, ppb (Protect, HealthProtect, Classic série i) |
+| CO2                       | Dioxyde de carbone, ppm (Classic série i)                                   |
+| Température               | °C, sur les modèles qui ont le capteur                                      |
+| Humidité                  | %, sur les modèles qui ont le capteur                                       |
+| En ligne                  | 1 quand le purificateur est connecté au cloud Blueair                       |
+
+Choisir une vitesse passe le purificateur en mode manuel, comme le fait
+l'appli. Les particules s'affichent comme dans l'appli Blueair (le cloud les
+envoie 1,32 fois plus hautes ; l'intégration les corrige comme ha_blueair).
+Les PM1 ne sont pas publiées : Gladys n'a pas de capteur PM1.
+
+### Modèles
+
+- **Bornes de la vitesse** : 0–91 sur les modèles à quatre vitesses (Blue
+  Pure Max, Protect, 2-en-1), 0–100 sur les autres, 1–3 sur les
+  humidificateurs, 0–3 sur les Classic de l'ancien cloud (0 = éteint).
+- **ComfortPure 3-en-1 (T10i, T20i)** : ces appareils chauffent. Ils sont en
+  **lecture seule** dans Gladys (qualité de l'air, température, filtre) : une
+  scène erronée ne doit jamais laisser un chauffage allumé. Pilotez-les avec
+  l'appli Blueair.
+- **Modèles anciens** (Classic 205/280i/290i/480i/680i, Sense+) : ils vivent
+  sur l'ancien cloud Blueair et sont trouvés avec le même compte. Leur filtre
+  dit seulement « à changer » ou non, sans pourcentage.
+- Les humidificateurs du compte apparaissent aussi, avec leur marche, vitesse,
+  modes et capteurs.
+
+## Widget du tableau de bord
+
+Le widget **Purificateurs Blueair**, deux présentations :
+
+- **tous les appareils** (aucun appareil choisi dans ses réglages) : une ligne
+  par appareil — son mode et ses PM2.5, en vert, orange ou rouge selon la
+  qualité de l'air, « Filtre à changer » le moment venu, « Hors ligne » s'il
+  n'est pas connecté — et deux boutons, **Tout en auto** et **Tout en nuit** ;
+- **un appareil** : des tuiles en direct (PM2.5, durée de vie du filtre,
+  température ou COV), son mode, son filtre, sa connexion, et des boutons :
+  **Éteindre** / **Allumer** et ses modes (Auto, Nuit, Éco). Le mode en cours
+  porte une coche.
 
 ## Scènes
 
-L'intégration ajoute ses propres cartes à l'éditeur de scènes (Gladys 5.1
-ou plus récent), dans la catégorie **Intégrations** :
+### Déclencheur
 
-- **Mouvement détecté** (déclencheur) — lance la scène quand un détecteur
-  de démonstration voit bouger quelque chose. Choisissez éventuellement le
-  détecteur et ce qui a bougé (personne, animal) ; laissés vides, toute
-  détection correspond. Les actions suivantes peuvent lire ce qui a bougé
-  avec `{{triggerEvent.data.target}}`.
-- **Identifier un appareil** (action) — fait se signaler l'appareil choisi.
-  Elle indique si l'appareil a pu se signaler, pour que les actions
-  suivantes puissent en dépendre.
+**Filtre Blueair à changer** : une fois par filtre, quand sa durée de vie
+restante atteint le seuil de la configuration (ou quand un ancien Classic dit
+que son filtre est à changer). Pas une seconde fois pour le même filtre, même
+après un redémarrage ; une fois le filtre changé, le suivant sera annoncé.
+Filtre : un appareil (vide : tous). Informations transmises : nom de
+l'appareil, modèle, durée de vie restante (%).
 
-## Tableau de bord
+### Action
 
-Ajoutez le widget **État de la démo** à un tableau de bord : il affiche en
-direct la température de la station météo et la puissance de la prise du
-bureau, la connexion utilisée par la prise (en orange si dégradée) et la
-position observée. Son bouton **Identifier la lampe** fait se signaler la
-lampe de démonstration.
+**Choisir le mode Blueair** : met un appareil, ou tous ceux qui proposent ce
+mode (appareil laissé vide), en mode Auto, Nuit, Éco ou Manuel. Renvoie le
+nombre d'appareils modifiés.
+
+Les fonctionnalités des appareils s'utilisent aussi directement dans les
+scènes : allumer ou éteindre un purificateur, régler sa vitesse, ou lancer une
+scène quand les PM2.5 dépassent une valeur.
+
+### Idées de scènes
+
+- **Coucher** : à 22 h 30, _Choisir le mode Blueair_ → Nuit, tous les
+  appareils. Le matin, retour en Auto.
+- **Rappel du filtre** : déclencheur _Filtre Blueair à changer_ → envoyer un
+  message « Changez le filtre de {nom de l'appareil} (encore {durée de vie
+  restante} %) ».
+- **Fumée de cuisine** : quand les PM2.5 du purificateur de la cuisine
+  dépassent 35 µg/m³, vitesse au maximum ; retour en Auto quand elles
+  repassent sous 10.
+- **Maison vide** : quand plus personne n'est là, éteindre les purificateurs ;
+  au retour, les rallumer en Auto.
+
+## Rafraîchissement et limites du cloud Blueair
+
+Blueair ne publie aucun quota pour son cloud. L'intégration reste légère :
+
+- une requête par appareil à chaque rafraîchissement (1 à 5 minutes, 2 par
+  défaut) ;
+- la qualité de l'air est une moyenne sur 5 minutes côté Blueair : elle est
+  lue au plus une fois toutes les 5 minutes ;
+- la liste des appareils est relue toutes les 6 heures (ou avec
+  **Scanner** dans l’onglet Découverte) ;
+- la connexion est gardée dans `/data` et renouvelée depuis la session, sans
+  renvoyer le mot de passe ;
+- un mot de passe refusé arrête toute requête jusqu'à un changement de la
+  configuration (des essais répétés bloqueraient le compte) ; une réponse
+  « trop de requêtes » suspend tout pendant 10 minutes.
+
+Gladys n'interroge pas ces appareils : l'intégration les rafraîchit avec son
+propre minuteur. Les changements faits dans l'appli Blueair apparaissent dans
+Gladys au rafraîchissement suivant.
 
 ## Dépannage
 
-L'intégration journalise tout ce qu'elle fait : consultez les logs de
-l'intégration depuis l'interface Gladys (ou `docker logs` sur l'hôte) avec
-`LOG_LEVEL=debug` pour le détail complet.
+- **« e-mail ou mot de passe refusé par Blueair »** : vérifiez-les dans
+  l'appli Blueair, puis enregistrez de nouveau la configuration (l'intégration
+  cesse d'essayer d'ici là).
+- **« ouvrez une fois l'appli Blueair et complétez votre profil (nom) »** :
+  Blueair exige désormais un nom sur le compte. Ouvrez l'appli, complétez le
+  profil, puis cliquez sur **Tester la connexion**.
+- **Connecté, mais aucun appareil** : la région est sans doute fausse —
+  essayez l'autre (les comptes créés au Royaume-Uni sont souvent en
+  « Europe »).
+- **Un purificateur est « Hors ligne »** : vérifiez son Wi-Fi dans l'appli
+  Blueair. Le cloud Blueair dit parfois hors ligne un purificateur qui
+  fonctionne : des valeurs récentes de capteurs comptent comme signe de vie.
+- **Les valeurs ne bougent pas** : la qualité de l'air ne change que toutes
+  les 5 minutes côté Blueair.
+- **Journaux** : `LOG_LEVEL=debug` montre chaque requête (jamais le mot de
+  passe ni les jetons).
+
+## Limites
+
+- Cloud seulement : pas de pilotage local, et rien ne marche sans Internet ou
+  quand le cloud Blueair est en panne.
+- Pas de temps réel : les changements apparaissent au rafraîchissement suivant
+  (le MQTT qu'utilise l'appli n'est pas implémenté).
+- Les chauffages ComfortPure 3-en-1 sont en lecture seule. Leurs modes de
+  chauffage et de refroidissement ne sont pas montrés.
+- Les PM1, le germ shield, la veilleuse, la minuterie et la mèche des
+  humidificateurs ne sont pas publiés.
+- Les comptes dont les appareils vivent dans une autre région que le compte
+  lui-même (rare) ne sont pas pris en charge.
+- Développée sans le matériel : les familles de modèles suivent blueair_api et
+  ha_blueair, construits avec de vrais appareils. Vos retours sont bienvenus.
