@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-15
+
 ### Added
 
 - Blueair air purifiers in Gladys, through the Blueair cloud: one device per
@@ -35,4 +37,5 @@ the notes of the version's GitHub Release.
   configuration changes.
 - English, French, German and Spanish, documentation included.
 
-[Unreleased]: https://github.com/guim31/gladys-blueair/commits/main
+[Unreleased]: https://github.com/guim31/gladys-blueair/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/guim31/gladys-blueair/releases/tag/v1.0.1
